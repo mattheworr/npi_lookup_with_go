@@ -51,7 +51,7 @@ func main() {
 }
 
 func setupDB() (*bolt.DB, error) {
-	db, err := bolt.Open("nbi.db", 0600, nil)
+	db, err := bolt.Open("npi.db", 0600, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not open db, %v", err)
 	}
