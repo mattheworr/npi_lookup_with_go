@@ -1,5 +1,5 @@
 # npi_lookup_with_go
-The specialties for medical service providers are indicated by taxonomy codes1, and each provider has one or more taxonomies.
+The specialties for medical service providers are indicated by taxonomy codes, and each provider has one or more taxonomies.
 Given a list of taxonomy code prefixes, this app can return the NPI numbers of all the providers who have at least one taxonomy that matches the prefix.
 
 ## Input
