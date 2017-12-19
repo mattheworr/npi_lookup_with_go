@@ -18,18 +18,19 @@ If a prefix does not match any providers, the value for that key will be an empt
 This example output is meant to indicate the format given the above example query, but the results when run on actual data will be different.
 
 ```    
-  {
+{
 "207P": [
-         { "NPI": 1037402843, "Taxonomy": "207P259200" },
-         { "NPI": 1037402843, "Taxonomy": "207P25000X" },
-         { "NPI": 4928502831, "Taxonomy": "207P12400X" }
-     ],
-     "207ND0900X": [ { "NPI": 9306820482, "Taxonomy": "207ND0900X" } ],
-     "2084P08": [
-         { "NPI": 2145025305, "Taxonomy": "2084P0800" },
-         { "NPI": 2950383053, "Taxonomy": "2084P084X" }
-     ],
-"12345": [] }
+        { "NPI": 1037402843, "Taxonomy": "207P259200" },
+        { "NPI": 1037402843, "Taxonomy": "207P25000X" },
+        { "NPI": 4928502831, "Taxonomy": "207P12400X" }
+    ],
+"207ND0900X": [ { "NPI": 9306820482, "Taxonomy": "207ND0900X" } ],
+"2084P08": [
+        { "NPI": 2145025305, "Taxonomy": "2084P0800" },
+        { "NPI": 2950383053, "Taxonomy": "2084P084X" }
+    ],
+"12345": []
+}
 ```
 
 ## Data sources and libraries:
