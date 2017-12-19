@@ -36,10 +36,10 @@ This example output is meant to indicate the format given the above example quer
 ## Data sources and libraries:
 *Source Dataset*
 
-https://storage.googleapis.com/cv-client-export/all_taxonomies.csv.gz2
+https://storage.googleapis.com/cv-client-export/all_taxonomies.csv.gz
 
 The ZIP file downloaded from this website contains a CSV with all the data needed for the project. You can assume that the format of the file and the number of columns will not change. The specific columns of interest here are the npi column and `the healthcare_provider_taxonomy_code`.
 
 *BoltDB*
 
-https://github.com/boltdb/bolt3
+https://github.com/boltdb/bolt
