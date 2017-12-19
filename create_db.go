@@ -1,7 +1,6 @@
 package main
 
 import (
-	"time"
 	"encoding/json"
 	"fmt"
 	"github.com/boltdb/bolt"
@@ -42,7 +41,7 @@ func main() {
 			log.Fatal(err)
 		}
 		if i, err := strconv.Atoi(record[0]); err == nil {
-			err = addNPI(db, i, record[1], time.Now())
+			err = addNPI(db, i, record[1])
 			if err != nil {
 				log.Fatal(err)
 		}
@@ -53,16 +52,16 @@ func main() {
 func setupDB() (*bolt.DB, error) {
 	db, err := bolt.Open("npi.db", 0600, nil)
 	if err != nil {
-		return nil, fmt.Errorf("Could not open db, %v", err)
+		return nil, fmt.Errorf("could not open db, %v", err)
 	}
 	err = db.Update(func(tx *bolt.Tx) error {
 		root, err := tx.CreateBucketIfNotExists([]byte("DB"))
 		if err != nil {
-			return fmt.Errorf("Could not create root bucket: %v", err)
+			return fmt.Errorf("could not create root bucket: %v", err)
 		}
 		_, err = root.CreateBucketIfNotExists([]byte("NPI"))
 		if err != nil {
-			return fmt.Errorf("Could not create NPI bucket: %v", err)
+			return fmt.Errorf("could not create NPI bucket: %v", err)
 		}
 		return nil
 	})
@@ -70,16 +69,18 @@ func setupDB() (*bolt.DB, error) {
 	return db, nil
 }
 
-func addNPI(db *bolt.DB, npi int, taxonomy string, date time.Time) error {
+func addNPI(db *bolt.DB, npi int, taxonomy string) error {
 	entry := NPI_Taxonomy{NPI: npi, Taxonomy: taxonomy}
 	encoded, err := json.Marshal(entry)
 	if err != nil {
-		return fmt.Errorf("Could not marshal entry json: %v", err)
+		return fmt.Errorf("could not marshal entry json: %v", err)
 	}
 	err = db.Update(func(tx *bolt.Tx) error {
-		err := tx.Bucket([]byte("DB")).Bucket([]byte("NPI")).Put([]byte(date.Format(time.RFC3339)), encoded)
+		b := tx.Bucket([]byte("DB")).Bucket([]byte("NPI"))
+		id, _ := b.NextSequence()
+		b.Put([]byte(strconv.FormatInt(int64(id), 16)), encoded)
 		if err != nil {
-			return fmt.Errorf("Could not insert entry: %v", err)
+			return fmt.Errorf("could not insert entry: %v", err)
 		}
 		return nil
 		
