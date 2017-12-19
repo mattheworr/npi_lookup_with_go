@@ -83,7 +83,7 @@ func addNPI(db *bolt.DB, npi int, taxonomy string, loop int) error {
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("DB")).Bucket([]byte("NPI"))
 		id, _ := b.NextSequence()
-		b.Put([]byte(strconv.FormatInt(int64(id), 16)), encoded)
+		b.Put([]byte(strconv.FormatInt(int64(id), 32)), encoded)
 		if err != nil {
 			return fmt.Errorf("could not insert entry: %v", err)
 		}
