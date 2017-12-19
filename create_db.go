@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"time"
 )
 
 type NPI_Taxonomy struct {
@@ -16,8 +17,8 @@ type NPI_Taxonomy struct {
 	Taxonomy string
 }
 
-
 func main() {
+	st := time.Now()
 	db, err := setupDB()
 	if err != nil {
 		log.Fatal(err)
@@ -31,8 +32,11 @@ func main() {
 	}
 	defer file.Close()
 	data := csv.NewReader(file)
+	fmt.Println("Loading Data...")
 
+	loop := -1
 	for {
+		loop += 1
 		record, err := data.Read()
 		if err == io.EOF {
 			break
@@ -41,12 +45,13 @@ func main() {
 			log.Fatal(err)
 		}
 		if i, err := strconv.Atoi(record[0]); err == nil {
-			err = addNPI(db, i, record[1])
+			err = addNPI(db, i, record[1], loop)
 			if err != nil {
 				log.Fatal(err)
 		}
 		}
 	}
+	fmt.Printf("Success!\nStart time: %v\nEnd time: %v\n", st.Local(), time.Now().Local())
 }
 
 func setupDB() (*bolt.DB, error) {
@@ -69,7 +74,7 @@ func setupDB() (*bolt.DB, error) {
 	return db, nil
 }
 
-func addNPI(db *bolt.DB, npi int, taxonomy string) error {
+func addNPI(db *bolt.DB, npi int, taxonomy string, loop int) error {
 	entry := NPI_Taxonomy{NPI: npi, Taxonomy: taxonomy}
 	encoded, err := json.Marshal(entry)
 	if err != nil {
@@ -85,6 +90,6 @@ func addNPI(db *bolt.DB, npi int, taxonomy string) error {
 		return nil
 		
 	})
-	fmt.Println("Added NPI Entry")
+	fmt.Printf("Added NPI Entry %v\n", loop)
 	return err
 }
