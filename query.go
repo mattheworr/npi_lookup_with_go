@@ -26,6 +26,7 @@ func main() {
 		prefixes := querystring["prefix"]
 		res := make(map[string][]NPI_Taxonomy)
 		for _, prefix := range prefixes {
+			res[prefix] = []NPI_Taxonomy{}
 			err = db.View(func(tx *bolt.Tx) error {
 				c := tx.Bucket([]byte("DB")).Bucket([]byte("NPI")).Cursor()
 				for k, v := c.First(); k != nil; k, v = c.Next() {
