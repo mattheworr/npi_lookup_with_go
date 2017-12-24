@@ -18,8 +18,8 @@ type NPI_Taxonomy struct {
 }
 
 func main() {
-	start := -1
-	loop := &start
+	//start := -1
+	//loop := &start
 
 	fmt.Println("Connecting to database...")
 	st := time.Now()
@@ -50,18 +50,18 @@ func main() {
 		}
 		if i, err := strconv.Atoi(record[0]); err == nil {
 			mapTaxonomy(i, record[1], taxMap)
-			*loop++
-			fmt.Printf("Mapped entry %v\n", *loop)
+			//*loop++
+			//fmt.Printf("Mapped entry %v\n", *loop)
 		}
 	}
-	*loop = -1
+	//*loop = -1
 	for k := range taxMap {
 		err = addNPI(db, k, taxMap[k])
 		if err != nil {
 			log.Fatal(err)
 		}
-		*loop++
-		fmt.Printf("Processed entry %v\n", *loop)
+		//*loop++
+		//fmt.Printf("Processed entry %v\n", *loop)
 	}
 	fmt.Printf("Success!\nStart time: %v\nEnd time: %v\n", st.Local(), time.Now().Local())
 }
