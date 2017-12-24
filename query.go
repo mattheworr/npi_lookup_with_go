@@ -10,6 +10,7 @@ import (
 	"time"
 	"fmt"
 	"bytes"
+	"sync"
 )
 
 type NPI_Taxonomy struct {
@@ -29,24 +30,34 @@ func main() {
 		querystring := r.URL.Query()
 		prefixes := querystring["prefix"]
 		res := make(map[string][]NPI_Taxonomy)
+
+		var wg sync.WaitGroup
+
 		for _, prefix := range prefixes {
 			res[prefix] = []NPI_Taxonomy{}
 			prefixByte := []byte(prefix)
-			err = db.View(func(tx *bolt.Tx) error {
-				c := tx.Bucket([]byte("DB")).Bucket([]byte("NPI")).Cursor()
-				for k, v := c.Seek(prefixByte); k != nil && bytes.HasPrefix(k, prefixByte); k, v = c.Next() {
-					n := decodeV(string(v))
-						res[prefix] = append(res[prefix], n...)
-				}
-				return nil
-			})
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				err = db.Batch(func(tx *bolt.Tx) error {
+					c := tx.Bucket([]byte("DB")).Bucket([]byte("NPI")).Cursor()
+					for k, v := c.Seek(prefixByte); k != nil && bytes.HasPrefix(k, prefixByte); k, v = c.Next() {
+						n := decodeV(string(v))
+							res[prefix] = append(res[prefix], n...)
+					}
+					return nil
+				})
+			}()
 		}
+		wg.Wait()
+
 		b, err := json.Marshal(res)
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		w.Write(b)
-		fmt.Printf("Success!\nStart time: %v\nEnd time: %v\n", st.Local(), time.Now().Local())
+		fmt.Println("Success!\nExecution time:", time.Since(st))
 	})
 
 	log.Fatal(http.ListenAndServe(":3535", nil))

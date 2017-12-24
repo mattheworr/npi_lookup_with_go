@@ -63,7 +63,7 @@ func main() {
 		//*loop++
 		//fmt.Printf("Processed entry %v\n", *loop)
 	}
-	fmt.Printf("Success!\nStart time: %v\nEnd time: %v\n", st.Local(), time.Now().Local())
+	fmt.Println("Success!\nExecution time:", time.Since(st))
 }
 
 func setupDB() (*bolt.DB, error) {
