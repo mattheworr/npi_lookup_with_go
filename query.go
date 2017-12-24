@@ -36,9 +36,7 @@ func main() {
 				c := tx.Bucket([]byte("DB")).Bucket([]byte("NPI")).Cursor()
 				for k, v := c.Seek(prefixByte); k != nil && bytes.HasPrefix(k, prefixByte); k, v = c.Next() {
 					n := decodeV(string(v))
-					for _, i := range n {
-						res[prefix] = append(res[prefix], i)
-					}
+						res[prefix] = n
 				}
 				return nil
 			})
