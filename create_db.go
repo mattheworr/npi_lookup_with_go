@@ -54,11 +54,13 @@ func main() {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err = addNPI(db, i, record[1], loop)
+				err = addNPI(db, i, record[1])
 				if err != nil {
 					log.Fatal(err)
 				}
 			}()
+		*loop++
+		fmt.Printf("Processed batch %v\n", *loop)
 		}
 	}
 	wg.Wait()
@@ -85,8 +87,7 @@ func setupDB() (*bolt.DB, error) {
 	return db, nil
 }
 
-func addNPI(db *bolt.DB, npi int, taxonomy string, loop *int) error {
-	*loop += 1
+func addNPI(db *bolt.DB, npi int, taxonomy string) error {
 	entry := NPI_Taxonomy{NPI: npi, Taxonomy: taxonomy}
 	encoded, err := json.Marshal(entry)
 	if err != nil {
@@ -101,6 +102,5 @@ func addNPI(db *bolt.DB, npi int, taxonomy string, loop *int) error {
 		}
 		return nil
 	})
-	fmt.Printf("Added NPI Entry %v\n", *loop)
 	return err
 }
