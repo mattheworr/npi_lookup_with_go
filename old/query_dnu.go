@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 	"fmt"
-	"bytes"
 )
 
 type NPI_Taxonomy struct {
@@ -31,13 +30,12 @@ func main() {
 		res := make(map[string][]NPI_Taxonomy)
 		for _, prefix := range prefixes {
 			res[prefix] = []NPI_Taxonomy{}
-			prefixByte := []byte(prefix)
 			err = db.View(func(tx *bolt.Tx) error {
 				c := tx.Bucket([]byte("DB")).Bucket([]byte("NPI")).Cursor()
-				for k, v := c.Seek(prefixByte); k != nil && bytes.HasPrefix(k, prefixByte); k, v = c.Next() {
+				for k, v := c.First(); k != nil; k, v = c.Next() {
 					n := decodeV(string(v))
-					for _, i := range n {
-						res[prefix] = append(res[prefix], i)
+					if strings.HasPrefix(n.Taxonomy, prefix) != false {
+						res[prefix] = append(res[prefix], n)
 					}
 				}
 				return nil
@@ -52,12 +50,12 @@ func main() {
 	})
 
 	log.Fatal(http.ListenAndServe(":3535", nil))
-	fmt.Println("Running http://localhost:3535/")
+	fmt.Println("Running on http://localhost:3535/")
 }
 
-func decodeV(jsonStream string) []NPI_Taxonomy {
+func decodeV(jsonStream string) NPI_Taxonomy {
 	dec := json.NewDecoder(strings.NewReader(string(jsonStream)))
-	var n []NPI_Taxonomy
+	var n NPI_Taxonomy
 	for {
 		if err := dec.Decode(&n); err == io.EOF {
 			break

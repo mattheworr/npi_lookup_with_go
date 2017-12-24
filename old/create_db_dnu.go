@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"sync"
 )
 
 type NPI_Taxonomy struct {
@@ -20,6 +21,8 @@ type NPI_Taxonomy struct {
 func main() {
 	start := -1
 	loop := &start
+
+	var wg sync.WaitGroup
 
 	fmt.Println("Connecting to database...")
 	st := time.Now()
@@ -39,7 +42,6 @@ func main() {
 
 	fmt.Println("Reading file...")
 	data := csv.NewReader(file)
-	taxMap := make(map[string][]NPI_Taxonomy)
 	for {
 		record, err := data.Read()
 		if err == io.EOF {
@@ -49,20 +51,19 @@ func main() {
 			log.Fatal(err)
 		}
 		if i, err := strconv.Atoi(record[0]); err == nil {
-			mapTaxonomy(i, record[1], taxMap)
-			*loop++
-			fmt.Printf("Mapped entry %v\n", *loop)
-		}
-	}
-	*loop = -1
-	for k := range taxMap {
-		err = addNPI(db, k, taxMap[k])
-		if err != nil {
-			log.Fatal(err)
-		}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				err = addNPI(db, i, record[1])
+				if err != nil {
+					log.Fatal(err)
+				}
+			}()
 		*loop++
-		fmt.Printf("Processed entry %v\n", *loop)
+		fmt.Printf("Processed batch %v\n", *loop)
+		}
 	}
+	wg.Wait()
 	fmt.Printf("Success!\nStart time: %v\nEnd time: %v\n", st.Local(), time.Now().Local())
 }
 
@@ -86,19 +87,16 @@ func setupDB() (*bolt.DB, error) {
 	return db, nil
 }
 
-func mapTaxonomy(npi int, taxonomy string, taxMap map[string][]NPI_Taxonomy) {
+func addNPI(db *bolt.DB, npi int, taxonomy string) error {
 	entry := NPI_Taxonomy{NPI: npi, Taxonomy: taxonomy}
-	taxMap[taxonomy] = append(taxMap[taxonomy], entry)
-}
-
-func addNPI(db *bolt.DB, taxonomy string, entry []NPI_Taxonomy) error {
 	encoded, err := json.Marshal(entry)
 	if err != nil {
 		return fmt.Errorf("could not marshal entry json: %v", err)
 	}
 	err = db.Batch(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("DB")).Bucket([]byte("NPI"))
-		b.Put([]byte(taxonomy), encoded)
+		id, _ := b.NextSequence()
+		b.Put([]byte(strconv.FormatInt(int64(id), 32)), encoded)
 		if err != nil {
 			return fmt.Errorf("could not insert entry: %v", err)
 		}
