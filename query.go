@@ -10,7 +10,6 @@ import (
 	"time"
 	"fmt"
 	"bytes"
-	"sync"
 )
 
 type NPI_Taxonomy struct {
@@ -31,25 +30,18 @@ func main() {
 		prefixes := querystring["prefix"]
 		res := make(map[string][]NPI_Taxonomy)
 
-		var wg sync.WaitGroup
-
 		for _, prefix := range prefixes {
 			res[prefix] = []NPI_Taxonomy{}
 			prefixByte := []byte(prefix)
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				err = db.Batch(func(tx *bolt.Tx) error {
-					c := tx.Bucket([]byte("DB")).Bucket([]byte("NPI")).Cursor()
-					for k, v := c.Seek(prefixByte); k != nil && bytes.HasPrefix(k, prefixByte); k, v = c.Next() {
-						n := decodeV(string(v))
-							res[prefix] = append(res[prefix], n...)
-					}
-					return nil
-				})
-			}()
+			err = db.Batch(func(tx *bolt.Tx) error {
+				c := tx.Bucket([]byte("DB")).Bucket([]byte("NPI")).Cursor()
+				for k, v := c.Seek(prefixByte); k != nil && bytes.HasPrefix(k, prefixByte); k, v = c.Next() {
+					n := decodeV(string(v))
+					res[prefix] = append(res[prefix], n...)
+				}
+				return nil
+			})
 		}
-		wg.Wait()
 
 		b, err := json.Marshal(res)
 		if err != nil {
