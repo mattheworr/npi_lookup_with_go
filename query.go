@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
+	"fmt"
 )
 
 type NPI_Taxonomy struct {
@@ -22,6 +24,7 @@ func main() {
 	defer db.Close()
 
 	http.HandleFunc("/taxonomy", func(w http.ResponseWriter, r *http.Request) {
+		st := time.Now()
 		querystring := r.URL.Query()
 		prefixes := querystring["prefix"]
 		res := make(map[string][]NPI_Taxonomy)
@@ -42,11 +45,12 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		w.Write(b)
+		fmt.Printf("Success!\nStart time: %v\nEnd time: %v\n", st.Local(), time.Now().Local())
 	})
 
 	log.Fatal(http.ListenAndServe(":3535", nil))
+	fmt.Println("Running on http://localhost:3535/")
 }
 
 func decodeV(jsonStream string) NPI_Taxonomy {
