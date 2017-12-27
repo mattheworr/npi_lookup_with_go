@@ -96,7 +96,7 @@ func addNPI(db *bolt.DB, taxonomy string, entry []NPI_Taxonomy) error {
 	if err != nil {
 		return fmt.Errorf("could not marshal entry json: %v", err)
 	}
-	err = db.Batch(func(tx *bolt.Tx) error {
+	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("DB")).Bucket([]byte("NPI"))
 		b.Put([]byte(taxonomy), encoded)
 		if err != nil {
