@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 	"fmt"
-	"bytes"
 )
 
 type NPI_Taxonomy struct {
@@ -32,12 +31,22 @@ func main() {
 
 		for _, prefix := range prefixes {
 			res[prefix] = []NPI_Taxonomy{}
-			prefixByte := []byte(prefix)
-			err = db.Batch(func(tx *bolt.Tx) error {
-				c := tx.Bucket([]byte("DB")).Bucket([]byte("NPI")).Cursor()
-				for k, v := c.Seek(prefixByte); k != nil && bytes.HasPrefix(k, prefixByte); k, v = c.Next() {
-					n := decodeV(string(v))
+			err = db.View(func(tx *bolt.Tx) error {
+				if len(prefix) == 10 {
+					b := tx.Bucket([]byte("DB")).Bucket([]byte("NPI"))
+					v := b.Get([]byte(prefix))
+					n := decodeV(v)
 					res[prefix] = append(res[prefix], n...)
+				} else {
+					b := tx.Bucket([]byte("DB")).Bucket([]byte("Taxonomy"))
+					taxList := decodeTax(b.Get([]byte(prefix)))
+					for _, tax := range taxList{
+						fmt.Println(tax)
+						c := tx.Bucket([]byte("DB")).Bucket([]byte("NPI"))
+						v := c.Get([]byte(tax))
+						n := decodeV(v)
+						res[prefix] = append(res[prefix], n...)
+					}
 				}
 				return nil
 			})
@@ -56,7 +65,21 @@ func main() {
 	fmt.Println("Running http://localhost:3535/")
 }
 
-func decodeV(jsonStream string) []NPI_Taxonomy {
+func decodeTax(jsonStream []byte) []string {
+	dec := json.NewDecoder(strings.NewReader(string(jsonStream)))
+	var n []string
+	for {
+		if err := dec.Decode(&n); err == io.EOF {
+			break
+		} else if err != nil {
+			log.Fatal(err)
+		}
+		return n
+	}
+	return n
+}
+
+func decodeV(jsonStream []byte) []NPI_Taxonomy {
 	dec := json.NewDecoder(strings.NewReader(string(jsonStream)))
 	var n []NPI_Taxonomy
 	for {

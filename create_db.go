@@ -39,7 +39,8 @@ func main() {
 
 	fmt.Println("Reading file...")
 	data := csv.NewReader(file)
-	taxMap := make(map[string][]NPI_Taxonomy)
+	npiMap := make(map[string][]NPI_Taxonomy)
+	taxMap := make(map[string][]string)
 	for {
 		record, err := data.Read()
 		if err == io.EOF {
@@ -49,20 +50,28 @@ func main() {
 			log.Fatal(err)
 		}
 		if i, err := strconv.Atoi(record[0]); err == nil {
-			mapTaxonomy(i, record[1], taxMap)
+			makeMaps(i, record[1], npiMap, taxMap)
 			//*loop++
 			//fmt.Printf("Mapped entry %v\n", *loop)
 		}
 	}
 	//*loop = -1
-	for k := range taxMap {
-		err = addNPI(db, k, taxMap[k])
+	for k := range npiMap {
+		err = addNPI(db, k, npiMap[k])
 		if err != nil {
 			log.Fatal(err)
 		}
 		//*loop++
 		//fmt.Printf("Processed entry %v\n", *loop)
 	}
+
+	for t := range taxMap {
+		err = addTax(db, t, taxMap[t])
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	fmt.Println("Success!\nExecution time:", time.Since(st))
 }
 
@@ -76,6 +85,10 @@ func setupDB() (*bolt.DB, error) {
 		if err != nil {
 			return fmt.Errorf("could not create root bucket: %v", err)
 		}
+		_, err = root.CreateBucketIfNotExists([]byte("Taxonomy"))
+		if err != nil {
+			return fmt.Errorf("could not create taxonomy ID bucket: %v", err)
+		}
 		_, err = root.CreateBucketIfNotExists([]byte("NPI"))
 		if err != nil {
 			return fmt.Errorf("could not create NPI bucket: %v", err)
@@ -86,9 +99,24 @@ func setupDB() (*bolt.DB, error) {
 	return db, nil
 }
 
-func mapTaxonomy(npi int, taxonomy string, taxMap map[string][]NPI_Taxonomy) {
+
+func makeMaps(npi int, taxonomy string, npiMap map[string][]NPI_Taxonomy, taxMap map[string][]string) {
+	mapNPI(npi, taxonomy, npiMap)
+	mapTaxonomy(taxonomy, taxMap)
+}
+
+func mapNPI(npi int, taxonomy string, npiMap map[string][]NPI_Taxonomy) {
 	entry := NPI_Taxonomy{NPI: npi, Taxonomy: taxonomy}
-	taxMap[taxonomy] = append(taxMap[taxonomy], entry)
+	npiMap[taxonomy] = append(npiMap[taxonomy], entry)
+}
+
+func mapTaxonomy(taxonomy string, taxMap map[string][]string) {
+	for _, j := range []int{2, 3, 4, 5, 6, 7, 8, 9} {
+		if _, ok := taxMap[taxonomy[:j]]; ok {
+		} else {
+			taxMap[taxonomy[:j]] = append(taxMap[taxonomy[:j]], taxonomy)
+		}
+	}
 }
 
 func addNPI(db *bolt.DB, taxonomy string, entry []NPI_Taxonomy) error {
@@ -106,3 +134,21 @@ func addNPI(db *bolt.DB, taxonomy string, entry []NPI_Taxonomy) error {
 	})
 	return err
 }
+
+
+func addTax(db *bolt.DB, taxKey string, taxList []string) error {
+	encoded, err := json.Marshal(taxList)
+	if err != nil {
+		return fmt.Errorf("could not marshal entry json: %v", err)
+	}
+	err = db.Update(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte("DB")).Bucket([]byte("Taxonomy"))
+		c.Put([]byte(taxKey), encoded)
+		if err != nil {
+			return fmt.Errorf("could not insert entry: %v", err)
+		}
+		return nil
+	})
+	return err
+}
+
